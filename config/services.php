@@ -42,6 +42,7 @@ return [
 
     'payment' => [
         'gateway' => env('PAYMENT_GATEWAY', 'demo'), // Options: xendit, midtrans, demo
+        'enabled' => env('PAYWALL_ENABLED', true),
     ],
 
     'xendit' => [

@@ -56,7 +56,7 @@ class PaymentService
     {
         $apiKey = config('services.xendit.secret_key');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             return $this->generateDemoQRIS($orderId, $amount);
         }
 
@@ -96,7 +96,7 @@ class PaymentService
         $serverKey = config('services.midtrans.server_key');
         $isProduction = config('services.midtrans.is_production', false);
 
-        if (!$serverKey) {
+        if (! $serverKey) {
             return $this->generateDemoQRIS($orderId, $amount);
         }
 
@@ -143,7 +143,7 @@ class PaymentService
         $qrData = "00020101021226670016COM.MERCHANT.WWW01189360050300000898740214{$orderId}0303UME51440014ID.CO.QRIS.WWW0215ID{$orderId}0303UME5204581153033605802ID5909PDFCONVERTER6007JAKARTA61051234062070503***63046B8A";
 
         return [
-            'qr_code_url' => "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=".urlencode($qrData),
+            'qr_code_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='.urlencode($qrData),
             'gateway' => 'demo',
             'gateway_response' => [
                 'order_id' => $orderId,
@@ -192,14 +192,14 @@ class PaymentService
     {
         $apiKey = config('services.xendit.secret_key');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             return false;
         }
 
         try {
             $qrId = $payment->payment_data['gateway_response']['id'] ?? null;
 
-            if (!$qrId) {
+            if (! $qrId) {
                 return false;
             }
 
@@ -229,7 +229,7 @@ class PaymentService
         $serverKey = config('services.midtrans.server_key');
         $isProduction = config('services.midtrans.is_production', false);
 
-        if (!$serverKey) {
+        if (! $serverKey) {
             return false;
         }
 
@@ -274,6 +274,11 @@ class PaymentService
      */
     public function getPaidPayment(string $sessionId): ?Payment
     {
+        // If paywall is disabled, return a mock payment to bypass the check
+        if (! config('services.payment.enabled', true)) {
+            return new Payment;
+        }
+
         return Payment::query()
             ->where('session_id', $sessionId)
             ->where('status', 'paid')

@@ -6,7 +6,6 @@ use App\Http\Requests\UploadPdfRequest;
 use App\Services\PaymentService;
 use App\Services\PdfToDocxConverter;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,8 +14,7 @@ class PdfConverterController extends Controller
     public function __construct(
         private PdfToDocxConverter $converter,
         private PaymentService $paymentService
-    ) {
-    }
+    ) {}
 
     public function index(): Response
     {
@@ -31,7 +29,7 @@ class PdfConverterController extends Controller
             // Check if there's a valid paid payment
             $payment = $this->paymentService->getPaidPayment($sessionId);
 
-            if (!$payment) {
+            if (! $payment) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Pembayaran diperlukan untuk melakukan konversi.',
@@ -45,8 +43,11 @@ class PdfConverterController extends Controller
             $docxPath = $this->converter->convert($pdfFile);
 
             // Mark payment as used (update status to completed)
-            $payment->status = 'completed';
-            $payment->save();
+            // Only update payment status if paywall is enabled
+            if (config('services.payment.enabled', true) && $payment->exists) {
+                $payment->status = 'completed';
+                $payment->save();
+            }
 
             // Get the original filename without extension
             $originalName = pathinfo($pdfFile->getClientOriginalName(), PATHINFO_FILENAME);
@@ -56,19 +57,19 @@ class PdfConverterController extends Controller
                 'success' => true,
                 'message' => 'PDF berhasil dikonversi.',
                 'download_url' => route('pdf.download', ['filename' => basename($docxPath)]),
-                'filename' => $originalName . '.docx',
+                'filename' => $originalName.'.docx',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengkonversi PDF: ' . $e->getMessage(),
+                'message' => 'Gagal mengkonversi PDF: '.$e->getMessage(),
             ], 500);
         }
     }
 
     public function download(string $filename): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        $filePath = storage_path('app/temp/' . $filename);
+        $filePath = storage_path('app/temp/'.$filename);
 
         if (! file_exists($filePath)) {
             abort(404, 'File not found.');
